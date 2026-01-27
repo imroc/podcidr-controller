@@ -6,6 +6,12 @@ A lightweight Pod CIDR allocator for Kubernetes nodes.
 
 `podcidr-controller` automatically allocates Pod CIDRs to Kubernetes nodes from a configured cluster CIDR range. It provides similar functionality to the built-in IPAM controller in `kube-controller-manager`, but runs as a standalone component.
 
+## Use Cases
+
+When deploying overlay CNI plugins like Flannel or Calico (IPIP/VXLAN mode) on managed Kubernetes clusters from cloud providers, these plugins require `spec.podCIDR` to be set on each node. However, some cloud providers disable the node IPAM controller in `kube-controller-manager` when using their native CNI solutions.
+
+For example, Tencent Kubernetes Engine (TKE) clusters in VPC-CNI network mode do not allocate Pod CIDRs to nodes since the native CNI doesn't need them. If you want to deploy Flannel or other overlay CNI plugins on such clusters, you can use this lightweight controller to handle Pod CIDR allocation.
+
 ## Features
 
 - Automatic Pod CIDR allocation for nodes
@@ -37,16 +43,16 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 
 ### Configuration
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `clusterCIDR` | CIDR range for pod IPs (required) | `""` |
-| `nodeCIDRMaskSize` | Mask size for node CIDR | `24` |
-| `replicaCount` | Number of replicas | `2` |
-| `image.repository` | Image repository | `docker.io/imroc/podcidr-controller` |
-| `image.tag` | Image tag | `Chart.AppVersion` |
-| `leaderElection.enabled` | Enable leader election | `true` |
-| `resources.limits.cpu` | CPU limit | `100m` |
-| `resources.limits.memory` | Memory limit | `128Mi` |
+| Parameter                 | Description                       | Default                              |
+| ------------------------- | --------------------------------- | ------------------------------------ |
+| `clusterCIDR`             | CIDR range for pod IPs (required) | `"10.244.0.0/16"`                                 |
+| `nodeCIDRMaskSize`        | Mask size for node CIDR           | `24`                                 |
+| `replicaCount`            | Number of replicas                | `2`                                  |
+| `image.repository`        | Image repository                  | `docker.io/imroc/podcidr-controller` |
+| `image.tag`               | Image tag                         | `Chart.AppVersion`                   |
+| `leaderElection.enabled`  | Enable leader election            | `true`                               |
+| `resources.limits.cpu`    | CPU limit                         | `100m`                               |
+| `resources.limits.memory` | Memory limit                      | `128Mi`                              |
 
 ## Usage Example
 
@@ -60,6 +66,7 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 ```
 
 This configuration allows:
+
 - 256 nodes (2^(24-16) = 256 subnets)
 - 254 pods per node (2^(32-24) - 2 = 254 usable IPs)
 
