@@ -5,7 +5,7 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
-clusterCIDR: ""
+clusterCIDR: "10.244.0.0/16"
 nodeCIDRMaskSize: 24
 
 leaderElection:
