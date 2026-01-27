@@ -1,0 +1,12 @@
+apiVersion: v2
+name: podcidr-controller
+description: A lightweight Pod CIDR allocator for Kubernetes nodes
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/imroc/podcidr-controller
+sources:
+  - https://github.com/imroc/podcidr-controller
+maintainers:
+  - name: roc
+    url: https://github.com/imroc
