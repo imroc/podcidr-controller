@@ -5,16 +5,20 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "podcidr-controller.labels" . | nindent 4 }}
+    name: podcidr-controller
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "podcidr-controller.selectorLabels" . | nindent 6 }}
+      name: podcidr-controller
   template:
     metadata:
       labels:
+        name: podcidr-controller
         {{- include "podcidr-controller.selectorLabels" . | nindent 8 }}
     spec:
+      hostNetwork: true
       serviceAccountName: {{ include "podcidr-controller.serviceAccountName" . }}
       containers:
         - name: {{ .Chart.Name }}

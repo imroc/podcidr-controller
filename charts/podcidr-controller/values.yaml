@@ -24,10 +24,19 @@ resources:
 
 nodeSelector: {}
 tolerations:
-  - key: node-role.kubernetes.io/control-plane
-    operator: Exists
-    effect: NoSchedule
-affinity: {}
+- key: node-role.kubernetes.io/control-plane
+  operator: Exists
+  effect: NoSchedule
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - topologyKey: kubernetes.io/hostname
+      labelSelector:
+        matchLabels:
+          name: podcidr-controller
+
+podAntiAffinity:
+  enabled: true
 
 serviceAccount:
   create: true
