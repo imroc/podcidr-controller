@@ -47,7 +47,7 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 
 | Parameter                 | Description                       | Default                              |
 | ------------------------- | --------------------------------- | ------------------------------------ |
-| `clusterCIDR`             | CIDR range for pod IPs (required) | `"10.244.0.0/16"`                                 |
+| `clusterCIDR`             | CIDR range for pod IPs (required) | `"10.244.0.0/16"`                    |
 | `nodeCIDRMaskSize`        | Mask size for node CIDR           | `24`                                 |
 | `replicaCount`            | Number of replicas                | `2`                                  |
 | `image.repository`        | Image repository                  | `docker.io/imroc/podcidr-controller` |
