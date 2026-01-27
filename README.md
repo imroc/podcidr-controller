@@ -1,3 +1,5 @@
+English | [中文](README_zh.md)
+
 # podcidr-controller
 
 A lightweight Pod CIDR allocator for Kubernetes nodes.
