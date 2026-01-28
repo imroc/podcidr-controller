@@ -77,7 +77,7 @@ This configuration allows:
 
 By default, the controller allocates PodCIDRs to all nodes. You can use `--node-selector` to filter which nodes receive allocation.
 
-### Only allocate to external nodes
+### Only allocate to some nodes
 
 ```bash
 helm install podcidr-controller podcidr-controller/podcidr-controller \
@@ -86,13 +86,13 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
   --set allocateNodeSelector='[{"key":"node.kubernetes.io/instance-type","operator":"In","values":["external"]}]'
 ```
 
-### Exclude VPC-CNI nodes
+### Exclude some nodes
 
 ```bash
 helm install podcidr-controller podcidr-controller/podcidr-controller \
   --namespace kube-system \
   --set clusterCIDR=10.244.0.0/16 \
-  --set allocateNodeSelector='[{"key":"networking.cloud.tencent.com/vpc-cni","operator":"DoesNotExist"}]'
+  --set allocateNodeSelector='[{"key":"test","operator":"DoesNotExist"}]'
 ```
 
 ### Supported Operators
