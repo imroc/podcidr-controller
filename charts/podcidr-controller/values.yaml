@@ -8,6 +8,12 @@ image:
 clusterCIDR: "10.244.0.0/16"
 nodeCIDRMaskSize: 24
 
+# Node selector for CIDR allocation (matchExpressions JSON)
+# Only nodes matching this selector will receive PodCIDR allocation
+# Empty means allocate to all nodes (default, backward compatible)
+# Example: '[{"key":"node-type","operator":"In","values":["external"]}]'
+allocateNodeSelector: ""
+
 leaderElection:
   enabled: true
   leaseDuration: 15s

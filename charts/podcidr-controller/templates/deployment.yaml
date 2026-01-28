@@ -27,6 +27,9 @@ spec:
           args:
             - --cluster-cidr={{ .Values.clusterCIDR }}
             - --node-cidr-mask-size={{ .Values.nodeCIDRMaskSize }}
+            {{- if .Values.allocateNodeSelector }}
+            - --node-selector={{ .Values.allocateNodeSelector }}
+            {{- end }}
             {{- if .Values.leaderElection.enabled }}
             - --leader-elect=true
             - --leader-elect-lease-duration={{ .Values.leaderElection.leaseDuration }}
