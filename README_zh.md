@@ -45,16 +45,17 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 
 ### 配置参数
 
-| 参数                      | 描述                        | 默认值                               |
-| ------------------------- | --------------------------- | ------------------------------------ |
-| `clusterCIDR`             | Pod IP 的 CIDR 范围（必填） | `"10.244.0.0/16"`                    |
-| `nodeCIDRMaskSize`        | 节点 CIDR 掩码大小          | `24`                                 |
-| `replicaCount`            | 副本数                      | `2`                                  |
-| `image.repository`        | 镜像仓库                    | `docker.io/imroc/podcidr-controller` |
-| `image.tag`               | 镜像标签                    | `Chart.AppVersion`                   |
-| `leaderElection.enabled`  | 启用 Leader 选举            | `true`                               |
-| `resources.limits.cpu`    | CPU 限制                    | `100m`                               |
-| `resources.limits.memory` | 内存限制                    | `128Mi`                              |
+| 参数                      | 描述                                      | 默认值                               |
+| ------------------------- | ----------------------------------------- | ------------------------------------ |
+| `clusterCIDR`             | Pod IP 的 CIDR 范围（必填）               | `"10.244.0.0/16"`                    |
+| `nodeCIDRMaskSize`        | 节点 CIDR 掩码大小                        | `24`                                 |
+| `allocateNodeSelector`    | CIDR 分配的节点选择器（JSON matchExpressions） | `""`                                 |
+| `replicaCount`            | 副本数                                    | `2`                                  |
+| `image.repository`        | 镜像仓库                                  | `docker.io/imroc/podcidr-controller` |
+| `image.tag`               | 镜像标签                                  | `Chart.AppVersion`                   |
+| `leaderElection.enabled`  | 启用 Leader 选举                          | `true`                               |
+| `resources.limits.cpu`    | CPU 限制                                  | `100m`                               |
+| `resources.limits.memory` | 内存限制                                  | `128Mi`                              |
 
 ## 使用示例
 
@@ -71,6 +72,39 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 
 - 256 个节点（2^(24-16) = 256 个子网）
 - 每个节点 254 个 Pod（2^(32-24) - 2 = 254 个可用 IP）
+
+## 节点选择器
+
+默认情况下，控制器会为所有节点分配 PodCIDR。你可以使用 `--node-selector` 来筛选哪些节点需要分配。
+
+### 仅为外部节点分配
+
+```bash
+helm install podcidr-controller podcidr-controller/podcidr-controller \
+  --namespace kube-system \
+  --set clusterCIDR=10.244.0.0/16 \
+  --set allocateNodeSelector='[{"key":"node.kubernetes.io/instance-type","operator":"In","values":["external"]}]'
+```
+
+### 排除 VPC-CNI 节点
+
+```bash
+helm install podcidr-controller podcidr-controller/podcidr-controller \
+  --namespace kube-system \
+  --set clusterCIDR=10.244.0.0/16 \
+  --set allocateNodeSelector='[{"key":"networking.cloud.tencent.com/vpc-cni","operator":"DoesNotExist"}]'
+```
+
+### 支持的操作符
+
+- `In` - 标签值必须在指定列表中
+- `NotIn` - 标签值不能在指定列表中
+- `Exists` - 标签必须存在（忽略值）
+- `DoesNotExist` - 标签必须不存在
+- `Gt` - 标签值（整数）必须大于指定值
+- `Lt` - 标签值（整数）必须小于指定值
+
+多个表达式使用 AND 逻辑（所有条件必须匹配）。
 
 ## 工作原理
 

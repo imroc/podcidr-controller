@@ -45,16 +45,17 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 
 ### Configuration
 
-| Parameter                 | Description                       | Default                              |
-| ------------------------- | --------------------------------- | ------------------------------------ |
-| `clusterCIDR`             | CIDR range for pod IPs (required) | `"10.244.0.0/16"`                    |
-| `nodeCIDRMaskSize`        | Mask size for node CIDR           | `24`                                 |
-| `replicaCount`            | Number of replicas                | `2`                                  |
-| `image.repository`        | Image repository                  | `docker.io/imroc/podcidr-controller` |
-| `image.tag`               | Image tag                         | `Chart.AppVersion`                   |
-| `leaderElection.enabled`  | Enable leader election            | `true`                               |
-| `resources.limits.cpu`    | CPU limit                         | `100m`                               |
-| `resources.limits.memory` | Memory limit                      | `128Mi`                              |
+| Parameter                 | Description                                               | Default                              |
+| ------------------------- | --------------------------------------------------------- | ------------------------------------ |
+| `clusterCIDR`             | CIDR range for pod IPs (required)                         | `"10.244.0.0/16"`                    |
+| `nodeCIDRMaskSize`        | Mask size for node CIDR                                   | `24`                                 |
+| `allocateNodeSelector`    | Node selector for CIDR allocation (JSON matchExpressions) | `""`                                 |
+| `replicaCount`            | Number of replicas                                        | `2`                                  |
+| `image.repository`        | Image repository                                          | `docker.io/imroc/podcidr-controller` |
+| `image.tag`               | Image tag                                                 | `Chart.AppVersion`                   |
+| `leaderElection.enabled`  | Enable leader election                                    | `true`                               |
+| `resources.limits.cpu`    | CPU limit                                                 | `100m`                               |
+| `resources.limits.memory` | Memory limit                                              | `128Mi`                              |
 
 ## Usage Example
 
@@ -71,6 +72,39 @@ This configuration allows:
 
 - 256 nodes (2^(24-16) = 256 subnets)
 - 254 pods per node (2^(32-24) - 2 = 254 usable IPs)
+
+## Node Selector
+
+By default, the controller allocates PodCIDRs to all nodes. You can use `--node-selector` to filter which nodes receive allocation.
+
+### Only allocate to external nodes
+
+```bash
+helm install podcidr-controller podcidr-controller/podcidr-controller \
+  --namespace kube-system \
+  --set clusterCIDR=10.244.0.0/16 \
+  --set allocateNodeSelector='[{"key":"node.kubernetes.io/instance-type","operator":"In","values":["external"]}]'
+```
+
+### Exclude VPC-CNI nodes
+
+```bash
+helm install podcidr-controller podcidr-controller/podcidr-controller \
+  --namespace kube-system \
+  --set clusterCIDR=10.244.0.0/16 \
+  --set allocateNodeSelector='[{"key":"networking.cloud.tencent.com/vpc-cni","operator":"DoesNotExist"}]'
+```
+
+### Supported Operators
+
+- `In` - Label value must be in the specified list
+- `NotIn` - Label value must not be in the specified list
+- `Exists` - Label must exist (value ignored)
+- `DoesNotExist` - Label must not exist
+- `Gt` - Label value (integer) must be greater than specified
+- `Lt` - Label value (integer) must be less than specified
+
+Multiple expressions use AND logic (all must match).
 
 ## How It Works
 
