@@ -139,3 +139,59 @@ func TestMatchesDoesNotExistOperator(t *testing.T) {
 		t.Error("expected node with label to not match DoesNotExist")
 	}
 }
+
+func TestMatchesGtOperator(t *testing.T) {
+	s, _ := Parse(`[{"key":"priority","operator":"Gt","values":["5"]}]`)
+
+	// Should match - 10 > 5
+	node1 := newNode(map[string]string{"priority": "10"})
+	if !s.Matches(node1) {
+		t.Error("expected node with priority=10 to match Gt 5")
+	}
+
+	// Should not match - 5 not > 5
+	node2 := newNode(map[string]string{"priority": "5"})
+	if s.Matches(node2) {
+		t.Error("expected node with priority=5 to not match Gt 5")
+	}
+
+	// Should not match - 3 < 5
+	node3 := newNode(map[string]string{"priority": "3"})
+	if s.Matches(node3) {
+		t.Error("expected node with priority=3 to not match Gt 5")
+	}
+
+	// Should not match - label missing
+	node4 := newNode(map[string]string{})
+	if s.Matches(node4) {
+		t.Error("expected node without label to not match Gt")
+	}
+
+	// Should not match - non-numeric value
+	node5 := newNode(map[string]string{"priority": "high"})
+	if s.Matches(node5) {
+		t.Error("expected node with non-numeric value to not match Gt")
+	}
+}
+
+func TestMatchesLtOperator(t *testing.T) {
+	s, _ := Parse(`[{"key":"priority","operator":"Lt","values":["5"]}]`)
+
+	// Should match - 3 < 5
+	node1 := newNode(map[string]string{"priority": "3"})
+	if !s.Matches(node1) {
+		t.Error("expected node with priority=3 to match Lt 5")
+	}
+
+	// Should not match - 5 not < 5
+	node2 := newNode(map[string]string{"priority": "5"})
+	if s.Matches(node2) {
+		t.Error("expected node with priority=5 to not match Lt 5")
+	}
+
+	// Should not match - 10 > 5
+	node3 := newNode(map[string]string{"priority": "10"})
+	if s.Matches(node3) {
+		t.Error("expected node with priority=10 to not match Lt 5")
+	}
+}

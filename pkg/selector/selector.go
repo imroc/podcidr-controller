@@ -2,6 +2,7 @@ package selector
 
 import (
 	"encoding/json"
+	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -70,6 +71,34 @@ func matchExpression(labels map[string]string, expr Expression) bool {
 
 	case "DoesNotExist":
 		return !hasLabel
+
+	case "Gt":
+		if !hasLabel || len(expr.Values) == 0 {
+			return false
+		}
+		labelVal, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return false
+		}
+		compareVal, err := strconv.ParseInt(expr.Values[0], 10, 64)
+		if err != nil {
+			return false
+		}
+		return labelVal > compareVal
+
+	case "Lt":
+		if !hasLabel || len(expr.Values) == 0 {
+			return false
+		}
+		labelVal, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return false
+		}
+		compareVal, err := strconv.ParseInt(expr.Values[0], 10, 64)
+		if err != nil {
+			return false
+		}
+		return labelVal < compareVal
 
 	default:
 		return false
