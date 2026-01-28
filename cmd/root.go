@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -15,11 +16,13 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/imroc/podcidr-controller/pkg/controller"
+	"github.com/imroc/podcidr-controller/pkg/selector"
 )
 
 var (
 	clusterCIDR      string
 	nodeCIDRMaskSize int
+	nodeSelectorStr  string
 	leaderElect      bool
 	leaseDuration    time.Duration
 	renewDeadline    time.Duration
@@ -37,6 +40,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.Flags().StringVar(&clusterCIDR, "cluster-cidr", "", "CIDR range for pod IPs (required)")
 	rootCmd.Flags().IntVar(&nodeCIDRMaskSize, "node-cidr-mask-size", 24, "Mask size for node CIDR")
+	rootCmd.Flags().StringVar(&nodeSelectorStr, "node-selector", "", "JSON array of matchExpressions to filter nodes for CIDR allocation")
 	rootCmd.Flags().BoolVar(&leaderElect, "leader-elect", true, "Enable leader election for HA")
 	rootCmd.Flags().DurationVar(&leaseDuration, "leader-elect-lease-duration", 15*time.Second, "Lease duration for leader election")
 	rootCmd.Flags().DurationVar(&renewDeadline, "leader-elect-renew-deadline", 10*time.Second, "Renew deadline for leader election")
@@ -118,9 +122,14 @@ func runWithLeaderElection(ctx context.Context, clientset kubernetes.Interface) 
 }
 
 func runController(ctx context.Context, clientset kubernetes.Interface) error {
+	nodeSelector, err := selector.Parse(nodeSelectorStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse node-selector: %w", err)
+	}
+
 	informerFactory := informers.NewSharedInformerFactory(clientset, time.Minute*10)
 
-	ctrl, err := controller.NewController(clientset, informerFactory, clusterCIDR, nodeCIDRMaskSize)
+	ctrl, err := controller.NewController(clientset, informerFactory, clusterCIDR, nodeCIDRMaskSize, nodeSelector)
 	if err != nil {
 		return err
 	}
