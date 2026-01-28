@@ -44,7 +44,7 @@ func TestMarkAllocated(t *testing.T) {
 
 	// Next allocation should skip index 5
 	for i := 0; i < 5; i++ {
-		alloc.AllocateNext()
+		_, _ = alloc.AllocateNext()
 	}
 	cidr, _ := alloc.AllocateNext()
 	if cidr != "10.244.6.0/24" {
@@ -56,7 +56,7 @@ func TestRelease(t *testing.T) {
 	alloc, _ := NewAllocator("10.244.0.0/24", 26)
 
 	cidr1, _ := alloc.AllocateNext()
-	alloc.Release(cidr1)
+	_ = alloc.Release(cidr1)
 
 	cidr2, _ := alloc.AllocateNext()
 	if cidr1 != cidr2 {

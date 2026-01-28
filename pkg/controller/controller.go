@@ -56,7 +56,7 @@ func NewController(
 		nodeSelector: nodeSelector,
 	}
 
-	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, _ = nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: c.enqueueNode,
 		UpdateFunc: func(old, new interface{}) {
 			c.enqueueNode(new)
@@ -207,7 +207,7 @@ func (c *Controller) syncNode(ctx context.Context, key string) error {
 
 	_, err = c.clientset.CoreV1().Nodes().Update(ctx, nodeCopy, metav1.UpdateOptions{})
 	if err != nil {
-		c.allocator.Release(cidrBlock)
+		_ = c.allocator.Release(cidrBlock)
 		return fmt.Errorf("failed to update node %s with CIDR %s: %w", node.Name, cidrBlock, err)
 	}
 

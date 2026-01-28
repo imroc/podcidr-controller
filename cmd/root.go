@@ -45,7 +45,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&leaseDuration, "leader-elect-lease-duration", 15*time.Second, "Lease duration for leader election")
 	rootCmd.Flags().DurationVar(&renewDeadline, "leader-elect-renew-deadline", 10*time.Second, "Renew deadline for leader election")
 	rootCmd.Flags().DurationVar(&retryPeriod, "leader-elect-retry-period", 2*time.Second, "Retry period for leader election")
-	rootCmd.MarkFlagRequired("cluster-cidr")
+	_ = rootCmd.MarkFlagRequired("cluster-cidr")
 }
 
 func Execute() error {
