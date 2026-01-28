@@ -195,3 +195,26 @@ func TestMatchesLtOperator(t *testing.T) {
 		t.Error("expected node with priority=10 to not match Lt 5")
 	}
 }
+
+func TestMatchesMultipleExpressions(t *testing.T) {
+	// node-type=edge AND zone!=zone-a
+	s, _ := Parse(`[{"key":"node-type","operator":"In","values":["edge"]},{"key":"zone","operator":"NotIn","values":["zone-a"]}]`)
+
+	// Should match - both conditions met
+	node1 := newNode(map[string]string{"node-type": "edge", "zone": "zone-b"})
+	if !s.Matches(node1) {
+		t.Error("expected node matching both conditions to match")
+	}
+
+	// Should not match - first condition fails
+	node2 := newNode(map[string]string{"node-type": "internal", "zone": "zone-b"})
+	if s.Matches(node2) {
+		t.Error("expected node failing first condition to not match")
+	}
+
+	// Should not match - second condition fails
+	node3 := newNode(map[string]string{"node-type": "edge", "zone": "zone-a"})
+	if s.Matches(node3) {
+		t.Error("expected node failing second condition to not match")
+	}
+}
