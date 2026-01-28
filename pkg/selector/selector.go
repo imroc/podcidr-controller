@@ -65,6 +65,12 @@ func matchExpression(labels map[string]string, expr Expression) bool {
 		}
 		return !containsString(expr.Values, value)
 
+	case "Exists":
+		return hasLabel
+
+	case "DoesNotExist":
+		return !hasLabel
+
 	default:
 		return false
 	}

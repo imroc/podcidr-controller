@@ -107,3 +107,35 @@ func TestMatchesNotInOperator(t *testing.T) {
 		t.Error("expected node with 'zone-a' to not match NotIn")
 	}
 }
+
+func TestMatchesExistsOperator(t *testing.T) {
+	s, _ := Parse(`[{"key":"node-type","operator":"Exists"}]`)
+
+	// Should match - label exists
+	node1 := newNode(map[string]string{"node-type": "anything"})
+	if !s.Matches(node1) {
+		t.Error("expected node with label to match Exists")
+	}
+
+	// Should not match - label missing
+	node2 := newNode(map[string]string{"other": "label"})
+	if s.Matches(node2) {
+		t.Error("expected node without label to not match Exists")
+	}
+}
+
+func TestMatchesDoesNotExistOperator(t *testing.T) {
+	s, _ := Parse(`[{"key":"vpc-cni","operator":"DoesNotExist"}]`)
+
+	// Should match - label missing
+	node1 := newNode(map[string]string{"other": "label"})
+	if !s.Matches(node1) {
+		t.Error("expected node without label to match DoesNotExist")
+	}
+
+	// Should not match - label exists
+	node2 := newNode(map[string]string{"vpc-cni": "true"})
+	if s.Matches(node2) {
+		t.Error("expected node with label to not match DoesNotExist")
+	}
+}
