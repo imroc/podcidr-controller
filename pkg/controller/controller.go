@@ -135,12 +135,7 @@ func (c *Controller) syncExistingNodes() error {
 
 	for _, node := range nodes {
 		if node.Spec.PodCIDR != "" {
-			// Only mark as allocated if node matches selector
-			// This prevents reserving CIDRs for nodes we don't manage
-			if !c.nodeSelector.Matches(node) {
-				klog.V(4).Infof("Skipping existing CIDR %s for non-matching node %s", node.Spec.PodCIDR, node.Name)
-				continue
-			}
+			// Reserve all existing CIDRs regardless of selector to prevent conflicts
 			if err := c.allocator.MarkAllocated(node.Spec.PodCIDR); err != nil {
 				klog.Warningf("Node %s has podCIDR %s which is not in cluster CIDR %s: %v",
 					node.Name, node.Spec.PodCIDR, c.clusterCIDR, err)
