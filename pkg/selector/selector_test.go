@@ -2,6 +2,9 @@ package selector
 
 import (
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestParseEmpty(t *testing.T) {
@@ -35,5 +38,72 @@ func TestParseInvalidJSON(t *testing.T) {
 	_, err := Parse("not valid json")
 	if err == nil {
 		t.Error("expected error for invalid JSON")
+	}
+}
+
+func newNode(labels map[string]string) *corev1.Node {
+	return &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "test-node",
+			Labels: labels,
+		},
+	}
+}
+
+func TestMatchesEmptySelector(t *testing.T) {
+	s, _ := Parse("")
+	node := newNode(map[string]string{"foo": "bar"})
+	if !s.Matches(node) {
+		t.Error("empty selector should match all nodes")
+	}
+}
+
+func TestMatchesInOperator(t *testing.T) {
+	s, _ := Parse(`[{"key":"node-type","operator":"In","values":["external","edge"]}]`)
+
+	// Should match
+	node1 := newNode(map[string]string{"node-type": "external"})
+	if !s.Matches(node1) {
+		t.Error("expected node with 'external' to match")
+	}
+
+	// Should match
+	node2 := newNode(map[string]string{"node-type": "edge"})
+	if !s.Matches(node2) {
+		t.Error("expected node with 'edge' to match")
+	}
+
+	// Should not match - different value
+	node3 := newNode(map[string]string{"node-type": "internal"})
+	if s.Matches(node3) {
+		t.Error("expected node with 'internal' to not match")
+	}
+
+	// Should not match - label missing
+	node4 := newNode(map[string]string{"other": "label"})
+	if s.Matches(node4) {
+		t.Error("expected node without label to not match")
+	}
+}
+
+func TestMatchesNotInOperator(t *testing.T) {
+	s, _ := Parse(`[{"key":"zone","operator":"NotIn","values":["zone-a","zone-b"]}]`)
+
+	// Should match - different value
+	node1 := newNode(map[string]string{"zone": "zone-c"})
+	if !s.Matches(node1) {
+		t.Error("expected node with 'zone-c' to match NotIn")
+	}
+
+	// Should match - label missing
+	node2 := newNode(map[string]string{"other": "label"})
+	if !s.Matches(node2) {
+		t.Error("expected node without zone label to match NotIn")
+	}
+
+	// Should not match
+	node3 := newNode(map[string]string{"zone": "zone-a"})
+	if s.Matches(node3) {
+		t.Error("expected node with 'zone-a' to not match NotIn")
 	}
 }

@@ -2,6 +2,8 @@ package selector
 
 import (
 	"encoding/json"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // Expression represents a single label selector requirement
@@ -30,4 +32,49 @@ func Parse(jsonStr string) (*NodeSelector, error) {
 	}
 	s.MatchExpressions = expressions
 	return s, nil
+}
+
+// Matches returns true if the node matches all expressions (AND logic)
+// Empty selector matches all nodes
+func (s *NodeSelector) Matches(node *corev1.Node) bool {
+	if len(s.MatchExpressions) == 0 {
+		return true
+	}
+
+	for _, expr := range s.MatchExpressions {
+		if !matchExpression(node.Labels, expr) {
+			return false
+		}
+	}
+	return true
+}
+
+func matchExpression(labels map[string]string, expr Expression) bool {
+	value, hasLabel := labels[expr.Key]
+
+	switch expr.Operator {
+	case "In":
+		if !hasLabel {
+			return false
+		}
+		return containsString(expr.Values, value)
+
+	case "NotIn":
+		if !hasLabel {
+			return true
+		}
+		return !containsString(expr.Values, value)
+
+	default:
+		return false
+	}
+}
+
+func containsString(slice []string, s string) bool {
+	for _, v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
