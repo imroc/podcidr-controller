@@ -19,15 +19,17 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/imroc/podcidr-controller/pkg/cidr"
+	"github.com/imroc/podcidr-controller/pkg/selector"
 )
 
 type Controller struct {
-	clientset   kubernetes.Interface
-	nodeLister  corelister.NodeLister
-	nodeSynced  cache.InformerSynced
-	workqueue   workqueue.TypedRateLimitingInterface[string]
-	allocator   *cidr.Allocator
-	clusterCIDR string
+	clientset    kubernetes.Interface
+	nodeLister   corelister.NodeLister
+	nodeSynced   cache.InformerSynced
+	workqueue    workqueue.TypedRateLimitingInterface[string]
+	allocator    *cidr.Allocator
+	clusterCIDR  string
+	nodeSelector *selector.NodeSelector
 }
 
 func NewController(
@@ -35,6 +37,7 @@ func NewController(
 	informerFactory informers.SharedInformerFactory,
 	clusterCIDR string,
 	nodeMaskSize int,
+	nodeSelector *selector.NodeSelector,
 ) (*Controller, error) {
 	allocator, err := cidr.NewAllocator(clusterCIDR, nodeMaskSize)
 	if err != nil {
@@ -44,12 +47,13 @@ func NewController(
 	nodeInformer := informerFactory.Core().V1().Nodes()
 
 	c := &Controller{
-		clientset:   clientset,
-		nodeLister:  nodeInformer.Lister(),
-		nodeSynced:  nodeInformer.Informer().HasSynced,
-		workqueue:   workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[string]()),
-		allocator:   allocator,
-		clusterCIDR: clusterCIDR,
+		clientset:    clientset,
+		nodeLister:   nodeInformer.Lister(),
+		nodeSynced:   nodeInformer.Informer().HasSynced,
+		workqueue:    workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[string]()),
+		allocator:    allocator,
+		clusterCIDR:  clusterCIDR,
+		nodeSelector: nodeSelector,
 	}
 
 	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -131,6 +135,12 @@ func (c *Controller) syncExistingNodes() error {
 
 	for _, node := range nodes {
 		if node.Spec.PodCIDR != "" {
+			// Only mark as allocated if node matches selector
+			// This prevents reserving CIDRs for nodes we don't manage
+			if !c.nodeSelector.Matches(node) {
+				klog.V(4).Infof("Skipping existing CIDR %s for non-matching node %s", node.Spec.PodCIDR, node.Name)
+				continue
+			}
 			if err := c.allocator.MarkAllocated(node.Spec.PodCIDR); err != nil {
 				klog.Warningf("Node %s has podCIDR %s which is not in cluster CIDR %s: %v",
 					node.Name, node.Spec.PodCIDR, c.clusterCIDR, err)
@@ -175,7 +185,14 @@ func (c *Controller) syncNode(ctx context.Context, key string) error {
 		return err
 	}
 
+	// Already has CIDR
 	if node.Spec.PodCIDR != "" {
+		return nil
+	}
+
+	// Check if node matches selector
+	if !c.nodeSelector.Matches(node) {
+		klog.V(4).Infof("Node %s does not match selector, skipping", node.Name)
 		return nil
 	}
 
