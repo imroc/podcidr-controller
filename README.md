@@ -112,7 +112,7 @@ Multiple expressions use AND logic (all must match).
 
 The controller can automatically remove specified taints from nodes. This is useful when deploying overlay CNI plugins on managed Kubernetes clusters where nodes may have taints that prevent pod scheduling.
 
-For example, TKE clusters in VPC-CNI mode add `tke.cloud.tencent.com/eni-ip-unavailable:NoSchedule` taint to new nodes. When using Flannel instead of VPC-CNI, this taint is never removed by the native components, preventing pod scheduling.
+For example, TKE clusters in VPC-CNI mode add `tke.cloud.tencent.com/eni-ip-unavailable:NoSchedule` taint to new nodes. Since Flannel cannot coexist with the native VPC-CNI plugin, you need to uninstall VPC-CNI components first. After uninstalling, this taint will no longer be automatically removed, preventing pod scheduling.
 
 ### Configuration
 

@@ -112,7 +112,7 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 
 控制器可以自动移除节点上指定的污点。这在托管 Kubernetes 集群上部署 Overlay CNI 插件时非常有用，因为节点可能存在阻止 Pod 调度的污点。
 
-例如，TKE 集群在 VPC-CNI 模式下会给新节点添加 `tke.cloud.tencent.com/eni-ip-unavailable:NoSchedule` 污点。当使用 Flannel 替代 VPC-CNI 时，这个污点不会被原生组件移除，导致 Pod 无法调度。
+例如，TKE 集群在 VPC-CNI 模式下会给新节点添加 `tke.cloud.tencent.com/eni-ip-unavailable:NoSchedule` 污点。由于 Flannel 无法与原生 VPC-CNI 插件共存，需要先卸载 VPC-CNI 相关组件。卸载后，这个污点将不会被自动移除，导致 Pod 无法调度。
 
 ### 配置方式
 
