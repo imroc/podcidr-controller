@@ -20,16 +20,18 @@ import (
 
 	"github.com/imroc/podcidr-controller/pkg/cidr"
 	"github.com/imroc/podcidr-controller/pkg/selector"
+	"github.com/imroc/podcidr-controller/pkg/taint"
 )
 
 type Controller struct {
-	clientset    kubernetes.Interface
-	nodeLister   corelister.NodeLister
-	nodeSynced   cache.InformerSynced
-	workqueue    workqueue.TypedRateLimitingInterface[string]
-	allocator    *cidr.Allocator
-	clusterCIDR  string
-	nodeSelector *selector.NodeSelector
+	clientset     kubernetes.Interface
+	nodeLister    corelister.NodeLister
+	nodeSynced    cache.InformerSynced
+	workqueue     workqueue.TypedRateLimitingInterface[string]
+	allocator     *cidr.Allocator
+	clusterCIDR   string
+	nodeSelector  *selector.NodeSelector
+	taintRemover  *taint.TaintRemover
 }
 
 func NewController(
@@ -38,6 +40,7 @@ func NewController(
 	clusterCIDR string,
 	nodeMaskSize int,
 	nodeSelector *selector.NodeSelector,
+	taintRemover *taint.TaintRemover,
 ) (*Controller, error) {
 	allocator, err := cidr.NewAllocator(clusterCIDR, nodeMaskSize)
 	if err != nil {
@@ -54,6 +57,7 @@ func NewController(
 		allocator:    allocator,
 		clusterCIDR:  clusterCIDR,
 		nodeSelector: nodeSelector,
+		taintRemover: taintRemover,
 	}
 
 	_, _ = nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -180,6 +184,13 @@ func (c *Controller) syncNode(ctx context.Context, key string) error {
 		return err
 	}
 
+	// Handle taint removal (independent of CIDR allocation)
+	if c.taintRemover != nil {
+		if err := c.removeTaints(ctx, node); err != nil {
+			return err
+		}
+	}
+
 	// Already has CIDR
 	if node.Spec.PodCIDR != "" {
 		return nil
@@ -207,5 +218,35 @@ func (c *Controller) syncNode(ctx context.Context, key string) error {
 	}
 
 	klog.Infof("Allocated CIDR %s to node %s", cidrBlock, node.Name)
+	return nil
+}
+
+func (c *Controller) removeTaints(ctx context.Context, node *corev1.Node) error {
+	taintsToRemove := c.taintRemover.GetTaintsToRemove(node)
+	if len(taintsToRemove) == 0 {
+		return nil
+	}
+
+	// Re-fetch node to get latest version
+	freshNode, err := c.clientset.CoreV1().Nodes().Get(ctx, node.Name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get node %s: %w", node.Name, err)
+	}
+
+	// Recalculate taints to remove based on fresh node
+	taintsToRemove = c.taintRemover.GetTaintsToRemove(freshNode)
+	if len(taintsToRemove) == 0 {
+		return nil
+	}
+
+	nodeCopy := freshNode.DeepCopy()
+	nodeCopy.Spec.Taints = taint.FilterOutTaints(nodeCopy.Spec.Taints, taintsToRemove)
+
+	_, err = c.clientset.CoreV1().Nodes().Update(ctx, nodeCopy, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to remove taints from node %s: %w", node.Name, err)
+	}
+
+	klog.Infof("Removed taints %v from node %s", taint.TaintKeys(taintsToRemove), node.Name)
 	return nil
 }

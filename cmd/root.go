@@ -17,12 +17,14 @@ import (
 
 	"github.com/imroc/podcidr-controller/pkg/controller"
 	"github.com/imroc/podcidr-controller/pkg/selector"
+	"github.com/imroc/podcidr-controller/pkg/taint"
 )
 
 var (
 	clusterCIDR      string
 	nodeCIDRMaskSize int
 	nodeSelectorStr  string
+	removeTaintsStr  string
 	leaderElect      bool
 	leaseDuration    time.Duration
 	renewDeadline    time.Duration
@@ -41,6 +43,7 @@ func init() {
 	rootCmd.Flags().StringVar(&clusterCIDR, "cluster-cidr", "", "CIDR range for pod IPs (required)")
 	rootCmd.Flags().IntVar(&nodeCIDRMaskSize, "node-cidr-mask-size", 24, "Mask size for node CIDR")
 	rootCmd.Flags().StringVar(&nodeSelectorStr, "node-selector", "", "JSON array of matchExpressions to filter nodes for CIDR allocation")
+	rootCmd.Flags().StringVar(&removeTaintsStr, "remove-taints", "", "Comma-separated taints to remove from nodes (formats: key, key:effect, key=value:effect)")
 	rootCmd.Flags().BoolVar(&leaderElect, "leader-elect", true, "Enable leader election for HA")
 	rootCmd.Flags().DurationVar(&leaseDuration, "leader-elect-lease-duration", 15*time.Second, "Lease duration for leader election")
 	rootCmd.Flags().DurationVar(&renewDeadline, "leader-elect-renew-deadline", 10*time.Second, "Renew deadline for leader election")
@@ -127,9 +130,14 @@ func runController(ctx context.Context, clientset kubernetes.Interface) error {
 		return fmt.Errorf("failed to parse node-selector: %w", err)
 	}
 
+	taintRemover, err := taint.NewTaintRemover(removeTaintsStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse remove-taints: %w", err)
+	}
+
 	informerFactory := informers.NewSharedInformerFactory(clientset, time.Minute*10)
 
-	ctrl, err := controller.NewController(clientset, informerFactory, clusterCIDR, nodeCIDRMaskSize, nodeSelector)
+	ctrl, err := controller.NewController(clientset, informerFactory, clusterCIDR, nodeCIDRMaskSize, nodeSelector, taintRemover)
 	if err != nil {
 		return err
 	}
