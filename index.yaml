@@ -2,6 +2,22 @@ apiVersion: v1
 entries:
   podcidr-controller:
   - apiVersion: v2
+    appVersion: 1.1.0
+    created: "2026-01-29T05:22:08.215602721Z"
+    description: A lightweight Pod CIDR allocator for Kubernetes nodes
+    digest: 99f8d5cebbdc7db84b7e056c43ad46bb51b567f75d6fda052d6ed418e4846946
+    home: https://github.com/imroc/podcidr-controller
+    maintainers:
+    - name: roc
+      url: https://github.com/imroc
+    name: podcidr-controller
+    sources:
+    - https://github.com/imroc/podcidr-controller
+    type: application
+    urls:
+    - https://github.com/imroc/podcidr-controller/releases/download/podcidr-controller-1.1.0/podcidr-controller-1.1.0.tgz
+    version: 1.1.0
+  - apiVersion: v2
     appVersion: 1.0.0
     created: "2026-01-27T13:38:41.21017531Z"
     description: A lightweight Pod CIDR allocator for Kubernetes nodes
@@ -17,4 +33,4 @@ entries:
     urls:
     - https://github.com/imroc/podcidr-controller/releases/download/podcidr-controller-1.0.0/podcidr-controller-1.0.0.tgz
     version: 1.0.0
-generated: "2026-01-27T13:38:41.210181772Z"
+generated: "2026-01-29T05:22:08.215619924Z"
