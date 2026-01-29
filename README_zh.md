@@ -17,6 +17,7 @@
 ## 功能特性
 
 - 自动为节点分配 Pod CIDR
+- 自动移除节点上指定的污点
 - 基于位图追踪的顺序分配策略
 - 支持 Leader 选举实现高可用
 - 优雅处理已存在的节点 CIDR
@@ -50,6 +51,7 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 | `clusterCIDR`             | Pod IP 的 CIDR 范围（必填）                    | `"10.244.0.0/16"`                    |
 | `nodeCIDRMaskSize`        | 节点 CIDR 掩码大小                             | `24`                                 |
 | `allocateNodeSelector`    | CIDR 分配的节点选择器（JSON matchExpressions） | `""`                                 |
+| `removeTaints`            | 要自动移除的节点污点列表                       | `[]`                                 |
 | `replicaCount`            | 副本数                                         | `2`                                  |
 | `image.repository`        | 镜像仓库                                       | `docker.io/imroc/podcidr-controller` |
 | `image.tag`               | 镜像标签                                       | `Chart.AppVersion`                   |
@@ -105,6 +107,51 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 - `Lt` - 标签值（整数）必须小于指定值
 
 多个表达式使用 AND 逻辑（所有条件必须匹配）。
+
+## 自动移除污点
+
+控制器可以自动移除节点上指定的污点。这在托管 Kubernetes 集群上部署 Overlay CNI 插件时非常有用，因为节点可能存在阻止 Pod 调度的污点。
+
+例如，TKE 集群在 VPC-CNI 模式下会给新节点添加 `tke.cloud.tencent.com/eni-ip-unavailable:NoSchedule` 污点。当使用 Flannel 替代 VPC-CNI 时，这个污点不会被原生组件移除，导致 Pod 无法调度。
+
+### 配置方式
+
+```bash
+helm install podcidr-controller podcidr-controller/podcidr-controller \
+  --namespace kube-system \
+  --set clusterCIDR=10.244.0.0/16 \
+  --set removeTaints[0]=tke.cloud.tencent.com/eni-ip-unavailable
+```
+
+或在 values.yaml 中配置：
+
+```yaml
+removeTaints:
+  - tke.cloud.tencent.com/eni-ip-unavailable
+  - node.kubernetes.io/not-ready:NoSchedule
+```
+
+### 支持的格式
+
+- `key` - 匹配所有该 key 的污点（任意 value、任意 effect）
+- `key:effect` - 匹配指定 key 和 effect 的污点（任意 value）
+- `key=value:effect` - 精确匹配 key、value 和 effect
+
+### 示例
+
+```bash
+# 移除所有 key 为 "tke.cloud.tencent.com/eni-ip-unavailable" 的污点
+--remove-taints=tke.cloud.tencent.com/eni-ip-unavailable
+
+# 移除指定 effect 的污点
+--remove-taints=node.kubernetes.io/not-ready:NoSchedule
+
+# 精确匹配移除污点
+--remove-taints=dedicated=gpu:NoSchedule
+
+# 多个污点（逗号分隔）
+--remove-taints=tke.cloud.tencent.com/eni-ip-unavailable,node.kubernetes.io/not-ready:NoSchedule
+```
 
 ## 工作原理
 

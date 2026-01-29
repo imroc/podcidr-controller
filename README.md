@@ -17,6 +17,7 @@ For example, Tencent Kubernetes Engine (TKE) clusters in VPC-CNI network mode do
 ## Features
 
 - Automatic Pod CIDR allocation for nodes
+- Automatic removal of specified node taints
 - Sequential allocation strategy with bitmap tracking
 - Leader election for high availability
 - Graceful handling of existing node CIDRs
@@ -50,6 +51,7 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 | `clusterCIDR`             | CIDR range for pod IPs (required)                         | `"10.244.0.0/16"`                    |
 | `nodeCIDRMaskSize`        | Mask size for node CIDR                                   | `24`                                 |
 | `allocateNodeSelector`    | Node selector for CIDR allocation (JSON matchExpressions) | `""`                                 |
+| `removeTaints`            | List of taints to automatically remove from nodes         | `[]`                                 |
 | `replicaCount`            | Number of replicas                                        | `2`                                  |
 | `image.repository`        | Image repository                                          | `docker.io/imroc/podcidr-controller` |
 | `image.tag`               | Image tag                                                 | `Chart.AppVersion`                   |
@@ -105,6 +107,51 @@ helm install podcidr-controller podcidr-controller/podcidr-controller \
 - `Lt` - Label value (integer) must be less than specified
 
 Multiple expressions use AND logic (all must match).
+
+## Auto Remove Taints
+
+The controller can automatically remove specified taints from nodes. This is useful when deploying overlay CNI plugins on managed Kubernetes clusters where nodes may have taints that prevent pod scheduling.
+
+For example, TKE clusters in VPC-CNI mode add `tke.cloud.tencent.com/eni-ip-unavailable:NoSchedule` taint to new nodes. When using Flannel instead of VPC-CNI, this taint is never removed by the native components, preventing pod scheduling.
+
+### Configuration
+
+```bash
+helm install podcidr-controller podcidr-controller/podcidr-controller \
+  --namespace kube-system \
+  --set clusterCIDR=10.244.0.0/16 \
+  --set removeTaints[0]=tke.cloud.tencent.com/eni-ip-unavailable
+```
+
+Or in values.yaml:
+
+```yaml
+removeTaints:
+  - tke.cloud.tencent.com/eni-ip-unavailable
+  - node.kubernetes.io/not-ready:NoSchedule
+```
+
+### Supported Formats
+
+- `key` - Match all taints with this key (any value, any effect)
+- `key:effect` - Match taints with this key and effect (any value)
+- `key=value:effect` - Exact match of key, value, and effect
+
+### Examples
+
+```bash
+# Remove all taints with key "tke.cloud.tencent.com/eni-ip-unavailable"
+--remove-taints=tke.cloud.tencent.com/eni-ip-unavailable
+
+# Remove taint with specific effect
+--remove-taints=node.kubernetes.io/not-ready:NoSchedule
+
+# Remove taint with exact match
+--remove-taints=dedicated=gpu:NoSchedule
+
+# Multiple taints (comma-separated)
+--remove-taints=tke.cloud.tencent.com/eni-ip-unavailable,node.kubernetes.io/not-ready:NoSchedule
+```
 
 ## How It Works
 
