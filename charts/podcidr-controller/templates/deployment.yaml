@@ -30,6 +30,9 @@ spec:
             {{- if .Values.allocateNodeSelector }}
             - --node-selector={{ .Values.allocateNodeSelector }}
             {{- end }}
+            {{- if .Values.removeTaints }}
+            - --remove-taints={{ join "," .Values.removeTaints }}
+            {{- end }}
             {{- if .Values.leaderElection.enabled }}
             - --leader-elect=true
             - --leader-elect-lease-duration={{ .Values.leaderElection.leaseDuration }}

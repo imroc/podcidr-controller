@@ -14,6 +14,14 @@ nodeCIDRMaskSize: 24
 # Example: '[{"key":"node-type","operator":"In","values":["external"]}]'
 allocateNodeSelector: ""
 
+# Taints to automatically remove from nodes
+# Supported formats: key, key:effect, key=value:effect
+# Example:
+# removeTaints:
+#   - tke.cloud.tencent.com/eni-ip-unavailable
+#   - node.kubernetes.io/not-ready:NoSchedule
+removeTaints: []
+
 leaderElection:
   enabled: true
   leaseDuration: 15s
